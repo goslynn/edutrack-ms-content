@@ -91,6 +91,12 @@ COPY --chown=185 target/quarkus-app/*.jar /deployments/
 COPY --chown=185 target/quarkus-app/app/ /deployments/app/
 COPY --chown=185 target/quarkus-app/quarkus/ /deployments/quarkus/
 
+# Storage dir for uploaded files (CONTENT_STORAGE_DIR=/data/content). Create it in
+# the image owned by the runtime user (185, group 0) and group-writable, so the
+# named volume mounted here inherits writable perms. Otherwise Docker creates the
+# volume as root:root 0755 and uploads fail with AccessDeniedException.
+RUN mkdir -p /data/content && chown -R 185:0 /data/content && chmod -R g+rwx /data/content
+
 EXPOSE 8080
 USER 185
 ENV JAVA_OPTS_APPEND="-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager"
