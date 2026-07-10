@@ -1,0 +1,45 @@
+name: CI
+
+# Tests unitarios del Content Service: JUnit5 + Mockito puros + storage sobre @TempDir
+# (sin Quarkus, sin base de datos, sin Docker) => corren en cualquier runner de GitHub
+# Actions.
+#
+# El servicio depende del artefacto cl.duocuc.edutrack:edutrack-ms-commons, que no esta
+# publicado en un repositorio Maven publico. Por eso el job primero clona e instala
+# commons en el ~/.m2 local antes de compilar/testear este servicio.
+# (Si el repo de commons es privado, define un secreto COMMONS_TOKEN con acceso de
+#  lectura y descomenta la linea `token:`.)
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout content
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Checkout commons
+        uses: actions/checkout@v4
+        with:
+          repository: goslynn/edutrack-ms-commons
+          ref: master
+          path: commons
+          # token: ${{ secrets.COMMONS_TOKEN }}
+
+      - name: Install commons to local ~/.m2
+        run: ./mvnw -B -q -DskipTests install
+        working-directory: commons
+
+      - name: Run unit tests
+        run: ./mvnw -B test
